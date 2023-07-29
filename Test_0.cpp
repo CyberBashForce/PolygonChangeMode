@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <learnOpenGL/shader_s.h> //Not used here [custom made lib]
 
 void framebuffer_size_callback(GLFWwindow* window,int width,int height);
 void processInput(GLFWwindow* window);
@@ -10,15 +11,20 @@ const unsigned int Height = 800;
 
 const char *vertexshadersource = "#version 330 core\n"
 								"layout (location = 0) in vec3 aPos;\n"
-								"void main(){gl_Position = vec4(aPos.x,aPos.y,aPos.z,1.0);}\n";
+								"layout (location = 1) in vec3 aColor;\n"
+								"out vec3 FragColor_0;\n"
+								"void main(){gl_Position = vec4(aPos,1.0);\n"
+								"FragColor_0 = aColor;}\n";
 
 const char* fragmentshadersource = "#version 330 core\n"
 								"out vec4 FragColor;\n"
-								"void main(){ FragColor = vec4(1.0f,0.5f,0.2f,1.0f);}\n";
+								"uniform vec4 codeColor;\n"
+								"void main(){ FragColor = codeColor;}\n";
 
 const char* fragmentshaderssource2 = "#version 330 core\n"
 									"out vec4 FragColor2;\n"
-									"void main(){ FragColor2 = vec4(1.0f,1.0f,0.0f,1.0f);}\n";
+									"in vec3 FragColor_0;\n"
+									"void main(){ FragColor2 = vec4(FragColor_0,1.0f);}";
 
 int main() {
 
@@ -120,7 +126,7 @@ int main() {
 	
 	//Vertices data
 	float vertices1[] = {
-		0.5f,  0.5f, 0.0f,  // top right
+		0.5f,  0.5f, 0.0f,   // top right
 		 0.5f, -0.3f, 0.0f,  // bottom right
 		//-0.5f, -0.5f, 0.0f,  // bottom left
 		-0.5f,  0.5f, 0.0f,  // top left
@@ -130,9 +136,9 @@ int main() {
 	};
 
 	float vertices2[] = {
-		0.5f,-0.3f,0.0f,
-		0.5f,-0.7f,0.0f,
-		-0.5f,-0.7f,0.0f
+		0.5f,-0.3f,0.0f,	1.0f, 0.0f, 0.0f,
+		0.5f,-0.7f,0.0f,	0.0f, 1.0f, 0.0f,
+		-0.5f,-0.7f,0.0f,	0.0f, 0.0f, 1.0f
 	};
 
 	//Creating Indices for elements.
@@ -171,10 +177,17 @@ int main() {
 	glBindVertexArray(VAO1);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO1);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	int nAttrib;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttrib);
+	std::cout << "Total Number of supported attributes in MY PC : " << nAttrib << std::endl;
 
 	//Build Render Engine
 	while (!glfwWindowShouldClose(window)) {
@@ -183,13 +196,21 @@ int main() {
 		processInput(window);
 
 		//render
-		glClearColor(0.1f, 0.3f, 0.2f, 1.0f);
+		glClearColor(0.1f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		//draw a geometry!
 		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
 
+		//update color!
+		float timeValue = glfwGetTime();
+		float greenValue = sin(timeValue) / 2.0f + 0.5f;
+		//std::cout << "Time Value : " << timeValue << std::endl;
+		int vertexColorLocation = glGetUniformLocation(shaderProgram, "codeColor");
+		glUniform4f(vertexColorLocation, 0.0f, greenValue, 1.0f, 1.0f);
+
+
+		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glUseProgram(shaderProgram2);
